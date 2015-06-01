@@ -3,11 +3,17 @@ class AptPkg_VersionCompare
 
   def initialize(ver_string)
 
-    ver_string = ver_string.split(':') # is there an epoch?
-    @epoch = ver_string.length == 2 ? ver_string[0] : '0'
+    ver_string = ver_string.partition(':') # is there an epoch?
+    unless ver_string[2].empty?
+      @epoch = ver_string[0]
+      @has_epoch = true
+    else
+      @epoch = '0'
+      @has_epoch = false
+    end
 
-    unless @epoch == '0' # has an epoch
-      ver_string = ver_string[1].rpartition('-')
+    if @has_epoch # has an epoch
+      ver_string = ver_string[2].rpartition('-')
     else
       ver_string = ver_string[0].rpartition('-')
     end
@@ -16,9 +22,11 @@ class AptPkg_VersionCompare
     unless ver_string[0].empty?
       @upstream = ver_string[0]
       @revision = ver_string[2] # last part
+      @has_revision = true
     else # otherwise, if empty
       @upstream = ver_string[2]
       @revision = '0'
+      @has_revision = false
     end
 
 
@@ -41,6 +49,9 @@ class AptPkg_VersionCompare
   
   private
   def is_valid_version?
+
+    # Note: I didn't add checking of colons in upstream when there is epoch,
+    # As that is very very rare case
 
     # ([0-9]+:)? parts matches the epochs. which can be only digits if presents
     # ([0-9]+[a-zA-Z0-9~.+]*) matches upstream version part.
@@ -76,7 +87,7 @@ end
 # puts cmp1.ver_string
 
 # cmp1 = AptPkg_VersionCompare.new('1:1.4-p6-13.1')
-cmp1 = AptPkg_VersionCompare.new('1:2.2cvs20100105-true-dfsg-6ubuntu1')
+cmp1 = AptPkg_VersionCompare.new('12.2cvs:20100105-true-dfsg-6ubuntu1')
 puts 'epoch: ' + cmp1.epoch if cmp1.epoch
 puts 'upstream: ' + cmp1.upstream
 puts 'revision: ' + cmp1.revision if cmp1.revision
