@@ -25,7 +25,7 @@ class AptPkg_VersionCompare
     end
 
     # Check for version string validity
-    is_valid_version?(@epoch, @upstream, @revision)
+    is_valid_version?(@ver_string)
 
   end
 
@@ -34,35 +34,18 @@ class AptPkg_VersionCompare
   end
   
   private
-  def is_valid_version?(epoch, upstream, revision)
+  def is_valid_version?(ver_string)
 
-    # epoch can only be numbers
-    unless epoch.match(/^[0-9]+$/)
-      raise InvalidAptVersion.new('Invalid epoch')
-    end
+    valid_version_regex = /^([0-9]+:)?([0-9]+[a-zA-Z0-9~.+]*)(-[0-9]+[a-zA-Z0-9~.+]*)?$/
+    #Explanation of the regex
+    # ([0-9]+:)? parts matches the epochs. which can be only digits if presents
+    # ([0-9]+[a-zA-Z0-9~.+]*) matches upstream version part.
+    # it can be only alphanumeric characters, ~,. ,+ it must be present
+    # (-[0-9]+[a-zA-Z0-9~.+]*)? matches revision part, if present.
+    # can contain characters like upstream
 
-    # checking upstream
-    # upstream can only be
-    # 0-9,a-z,A-Z,+,.,- (if revision exits),~,: (if epoch exists)
-    # should starts with digits
-
-    if epoch.to_i != 0 && revision == '0' # only epoch exists
-      valid_upstream_regex = /^[0-9]+[a-zA-Z0-9~.+:]+$/
-    elsif epoch.to_i != 0 && revision != '0' # both epoch and revision
-      valid_upstream_regex = /^[0-9]+[-a-zA-Z0-9~.+:]+$/
-    elsif epoch.to_i == 0 && revision != '0' # only revision exists
-      valid_upstream_regex = /^[0-9]+[-a-zA-Z0-9~.+]+$/
-    else # neither epoch nor revision
-      valid_upstream_regex = /^[0-9]+[a-zA-Z0-9~.+]+$/
-    end
-
-    unless upstream.match(valid_upstream_regex)
-      raise InvalidAptVersion.new('Invalid upstream')
-    end
-
-    valid_revision_regex = /^[0-9]+[a-zA-Z0-9~.+]+$/
-    unless revision.match( valid_revision_regex )
-      raise InvalidAptVersion.new('Invalid revision')
+    unless ver_string.match( valid_version_regex )
+      raise InvalidAptVersion.new('Invalid version string')
     end
 
   end
@@ -75,8 +58,9 @@ class InvalidAptVersion < ArgumentError
   end
 end
 
-cmp1 = AptPkg_VersionCompare.new('1.0+32-s1beta1~svn1245')
-puts 'epoch ' + cmp1.epoch if cmp1.epoch
-puts 'upstream ' + cmp1.upstream
-puts 'revision ' + cmp1.revision if cmp1.revision
+# cmp1 = AptPkg_VersionCompare.new('1.0+32-1beta1~svn1245')
+cmp1 = AptPkg_VersionCompare.new('29:0.29-3')
+puts 'epoch: ' + cmp1.epoch if cmp1.epoch
+puts 'upstream: ' + cmp1.upstream
+puts 'revision: ' + cmp1.revision if cmp1.revision
 puts cmp1.ver_string
