@@ -38,7 +38,7 @@ class AptPkg_VersionCompare
 
     # Check for version string validity
     unless is_valid_version?
-      InvalidAptVersion.new('Invalid apt version string')
+      raise InvalidAptVersion.new('Invalid apt version string')
     end
 
   end
@@ -50,25 +50,52 @@ class AptPkg_VersionCompare
   private
   def is_valid_version?
 
-    # Note: I didn't add checking of colons in upstream when there is epoch,
-    # As that is very very rare case
-
     # ([0-9]+:)? parts matches the epochs. which can be only digits if presents
     # ([0-9]+[a-zA-Z0-9~.+]*) matches upstream version part.
     # it can be only alphanumeric characters, ~,. ,+ and '-' if there is a revision
     # (-[0-9]+[a-zA-Z0-9~.+]*)? matches revision part, if present.
     # can contain characters like upstream
 
-    # if there is a revision, the upstream can contain hyphen
-    if @revision == '0'
-      valid_version_regex = /^([0-9]+:)?([0-9]+[a-zA-Z0-9~.+-]*)(-[0-9]+[a-zA-Z0-9~.+]*)?$/
+    # return true if matched with the most general rule
+    return true if valid_epoch? && valid_upstream? && valid_revision?
+
+    false # otherwise return false
+  end
+
+  def valid_epoch?
+
+    return true if @has_epoch && @epoch.match(/\A[0-9]+\Z/)
+    return true if !@has_epoch && @epoch == '0'
+    false  # otherwise return false
+  end
+
+  def valid_upstream?
+
+    if @has_epoch && @has_revision
+      valid_regex = /\A[0-9]+[a-zA-Z0-9~.+-:]*\Z/
+
+    elsif @has_epoch && !@has_revision
+      valid_regex = /\A[0-9]+[a-zA-Z0-9~.+:]*\Z/
+
+    elsif !@has_epoch && @has_revision
+      valid_regex = /\A[0-9]+[a-zA-Z0-9~.+-]*\Z/
+
     else
-      valid_version_regex = /^([0-9]+:)?([0-9]+[a-zA-Z0-9~.+]*)(-[0-9]+[a-zA-Z0-9~.+]*)?$/
+      valid_regex = /\A[0-9]+[a-zA-Z0-9~.+]*\Z/
     end
 
-    # return true if matched with the most general rule
-    return true if @ver_string.match(valid_version_regex)
+    return true if @upstream.match(valid_regex)
 
+    false # otherwise return false
+
+  end
+
+  def valid_revision?
+
+    return true if @has_revision && @revision.match(/\A[0-9]+[a-zA-Z0-9~.+]*\Z/)
+    return true if !@has_revision && @revision == '0'
+
+    false # otherwise return false
   end
 
 end
@@ -78,17 +105,3 @@ class InvalidAptVersion < ArgumentError
     super error_msg
   end
 end
-
-# cmp1 = AptPkg_VersionCompare.new('1.0+321beta1~svn1245')
-# cmp1 = AptPkg_VersionCompare.new('29:0.29-3')
-# puts 'epoch: ' + cmp1.epoch if cmp1.epoch
-# puts 'upstream: ' + cmp1.upstream
-# puts 'revision: ' + cmp1.revision if cmp1.revision
-# puts cmp1.ver_string
-
-# cmp1 = AptPkg_VersionCompare.new('1:1.4-p6-13.1')
-cmp1 = AptPkg_VersionCompare.new('12.2cvs:20100105-true-dfsg-6ubuntu1')
-puts 'epoch: ' + cmp1.epoch if cmp1.epoch
-puts 'upstream: ' + cmp1.upstream
-puts 'revision: ' + cmp1.revision if cmp1.revision
-puts cmp1.ver_string
