@@ -1,4 +1,5 @@
-class AptPkg_VersionCompare
+class AptPkg_VersionAnalyzer
+
   attr_reader :epoch, :upstream, :revision, :ver_string
 
   def initialize(ver_string)
@@ -37,24 +38,20 @@ class AptPkg_VersionCompare
     end
 
     # Check for version string validity
-    unless is_valid_version?
-      raise InvalidAptVersion.new('Invalid apt version string')
-    end
+    is_valid_version?
 
   end
 
   def to_s
     @ver_string
   end
-  
+
   private
+
   def is_valid_version?
 
-    # ([0-9]+:)? parts matches the epochs. which can be only digits if presents
-    # ([0-9]+[a-zA-Z0-9~.+]*) matches upstream version part.
-    # it can be only alphanumeric characters, ~,. ,+ and '-' if there is a revision
-    # (-[0-9]+[a-zA-Z0-9~.+]*)? matches revision part, if present.
-    # can contain characters like upstream
+    # Please check Ubuntu or debian policy guide for
+    # versioning scheme
 
     # return true if matched with the most general rule
     return true if valid_epoch? && valid_upstream? && valid_revision?
@@ -66,7 +63,9 @@ class AptPkg_VersionCompare
 
     return true if @has_epoch && @epoch.match(/\A[0-9]+\Z/)
     return true if !@has_epoch && @epoch == '0'
-    false  # otherwise return false
+
+    raise InvalidAptVersion.new("Invalid epoch string: #{@epoch}")
+
   end
 
   def valid_upstream?
@@ -86,16 +85,17 @@ class AptPkg_VersionCompare
 
     return true if @upstream.match(valid_regex)
 
-    false # otherwise return false
-
+    raise InvalidAptVersion.new(
+              "Invalid upstream : #{@upstream}")
   end
 
   def valid_revision?
 
-    return true if @has_revision && @revision.match(/\A[0-9]+[a-zA-Z0-9~.+]*\Z/)
+    return true if @has_revision && @revision.match(/\A[a-zA-Z0-9~.+]*\Z/)
     return true if !@has_revision && @revision == '0'
 
-    false # otherwise return false
+    raise InvalidAptVersion.new(
+              "Invalid revision: #{@revision}")
   end
 
 end
