@@ -1,8 +1,12 @@
 =begin
-  AptPkg_VersionAnalyzer is a Ruby class to extract and analyze
+  AptVersion is a Ruby class to extract, analyze and compare
   version string of debian packages.
 =end
-class AptPkg_VersionAnalyzer
+
+require 'debian'
+
+class AptPkg_Version
+  include Comparable
 
   attr_reader :epoch, :upstream, :revision, :ver_string
 
@@ -36,9 +40,9 @@ class AptPkg_VersionAnalyzer
 
 
     # construct full version string
-    @ver_string = "#{@epoch.to_s}:#{@upstream.to_s}"
+    @version = "#{@epoch.to_s}:#{@upstream.to_s}"
     unless @revision == '0'
-      @ver_string += "-#{@revision.to_s}"
+      @version += "-#{@revision.to_s}"
     end
 
     # Check for version string validity
@@ -47,10 +51,36 @@ class AptPkg_VersionAnalyzer
   end
 
   def to_s
-    @ver_string
+    @version
   end
 
-  private
+  def <=>(otherObj)
+    # Compares the version of this object to the other object
+    # if this is greater than other, return 1
+    # if less, return -1
+    # if equal , return 0
+    # else return nil
+
+    ver1 = @version
+    ver2 = otherObj.version
+
+    if Debian::Version.cmp_version(ver1, '>', ver2 )
+      return 1
+
+    elsif Debian::Version.cmp_version(ver1, '<', ver2 )
+      return -1
+
+    elsif Debian::Version.cmp_version(ver1, '=', ver2 )
+      return 0
+
+    else
+      return nil
+    end
+
+  end
+
+    # Make private
+    private
 
   def is_valid_version?
 
@@ -104,7 +134,10 @@ class AptPkg_VersionAnalyzer
 
 end
 
+
 class InvalidAptVersion < ArgumentError
+  # This is a simple extension to the Exception class
+  # ArgumentError
   def initialize(error_msg)
     super error_msg
   end
