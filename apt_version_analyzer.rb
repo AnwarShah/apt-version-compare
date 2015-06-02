@@ -1,3 +1,7 @@
+=begin
+  AptPkg_VersionAnalyzer is a Ruby class to extract and analyze
+  version string of debian packages.
+=end
 class AptPkg_VersionAnalyzer
 
   attr_reader :epoch, :upstream, :revision, :ver_string
